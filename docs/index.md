@@ -25,18 +25,18 @@
 
 ## Models
 
-- [roberta-base pretrained artifacts](models/pretrained/roberta-base.md)
-- [roberta-large pretrained artifacts](models/pretrained/roberta-large.md)
-- [vit-base pretrained artifacts](models/pretrained/vit-base.md)
-- [vit-large pretrained artifacts](models/pretrained/vit-large.md)
+- [roberta-base pretrained artifacts](experiments/roberta-base.md)
+- [roberta-large pretrained artifacts](experiments/roberta-large.md)
+- [vit-base pretrained artifacts](experiments/vit-base.md)
+- [vit-large pretrained artifacts](experiments/vit-large.md)
 
 ## Protocols
 
-- [table1 experiment selection](protocols/table1.md)
-- [table2 experiment selection](protocols/table2.md)
-- [table3 experiment selection](protocols/table3.md)
-- [vision-ablation experiment selection](protocols/vision-ablation.md)
-- [vision-sparse experiment selection](protocols/vision-sparse.md)
+- [table1 experiment selection](experiments/table1.md)
+- [table2 experiment selection](experiments/table2.md)
+- [table3 experiment selection](experiments/table3.md)
+- [vision-ablation experiment selection](experiments/vision-ablation.md)
+- [vision-sparse experiment selection](experiments/vision-sparse.md)
 
 ## Workflows
 

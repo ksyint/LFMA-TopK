@@ -6,8 +6,8 @@ import csv
 import statistics
 from pathlib import Path
 from copy import deepcopy
+from lfma.models.fourier.adaptation.layers import FourierLinear
 from lfma.models.fourier.core import (
-    FourierLinear,
     BACKBONES,
     load_backbone,
     target_names,

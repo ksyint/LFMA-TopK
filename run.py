@@ -17,12 +17,11 @@ from lfma.models.fourier.core import (
     cuda_device,
     load_config,
     set_seed,
-    merge_adapters,
     BACKBONES,
     IMAGE_TASKS,
     IMAGE_HUB,
-    inject_adapters,
 )
+from lfma.models.fourier.adaptation.injection import merge_adapters, inject_adapters
 from pathlib import Path
 from lfma.artifacts.adapter.storage import (
     load_pretrained_adapter,
@@ -33,7 +32,7 @@ from lfma.artifacts.adapter.storage import (
 )
 from PIL import Image
 from torch import nn
-from lfma.experiments.catalog.protocols import (
+from lfma.experiments.protocols import (
     inspect_adapter_cli,
     summarize_cli,
     grid_cli,
@@ -440,11 +439,11 @@ def main():
     import sys
 
     from lfma.artifacts.adapter.validation import adapter_cli
-    from lfma.models.fourier.analysis.spectrum import spectrum_cli
+    from lfma.models.fourier.spectrum import spectrum_cli
     from lfma.data.benchmarks.manifest import manifest_cli
-    from lfma.experiments.planning.session import plan_cli
-    from lfma.artifacts.transport.bundle import bundle_cli
-    from lfma.experiments.reporting.comparison import compare_cli
+    from lfma.experiments.session import plan_cli
+    from lfma.artifacts.adapter.bundle import bundle_cli
+    from lfma.experiments.comparison import compare_cli
 
     commands = {
         'adapter': adapter_cli,

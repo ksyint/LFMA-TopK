@@ -7,4 +7,4 @@ python run.py manifest --task sst2 --train data/sst2/train.jsonl --validation da
 python run.py manifest --inspect datasets/sst2-manifest
 ```
 
-Pass `--manifest-dir datasets/sst2-manifest` to the matching RoBERTa training profile. Native tokenization and dynamic padding are unchanged. Hidden-label text test records may omit labels or use -1. The files under `examples/manifests/text` illustrate the schema. Prepare the actual benchmark partitions for training and scoring.
+Pass `--manifest-dir datasets/sst2-manifest` to the matching RoBERTa training profile. Native tokenization and dynamic padding are unchanged. Hidden-label text test records may omit labels or use -1. The files under `examples/manifests/text` illustrate the schema with names such as `sst2-train.jsonl` and `mrpc-validation.jsonl`. The preparation command accepts each source path separately and writes the bundle's standard `train.jsonl`, `validation.jsonl`, and `test.jsonl` names. Prepare the actual benchmark partitions for training and scoring.

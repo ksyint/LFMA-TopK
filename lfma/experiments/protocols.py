@@ -49,7 +49,7 @@ def accepts(config, protocol):
     return True
 
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / 'experiments' / 'configs' / 'catalog'
 VISION_RATIOS = (0.0003, 0.05, 0.1)
 NLU_RATIOS = {

@@ -161,7 +161,7 @@ A merged export is a standard Transformers model directory containing the adapte
 
 ## 6. Adapter modules
 
-`lfma/models/fourier/core.py` keeps Fourier support selection, adapter injection, pinned backbone definitions, and pretrained model construction together. `lfma/data/benchmarks/streams.py` prepares raw examples and task metrics. `lfma/artifacts/adapter/storage.py` stores and restores sparse adapters, while `lfma/experiments/catalog/protocols.py` selects protocols and inspects parameter budgets. `run.py` runs the requested operation through subcommands. See [module and checkpoint layout](docs/implementation.md) for the data flow.
+`lfma/models/fourier/core.py` defines pinned backbones and constructs pretrained models. The adjacent `spectrum.py` analyzes learned supports, and `adaptation/layers.py` and `adaptation/injection.py` implement sparse Fourier updates, projection replacement, and merging. `lfma/data/benchmarks` keeps dataset streams with manifest preparation. `lfma/artifacts/adapter` groups storage, structural validation, and portable bundles. `lfma/experiments` contains protocol selection, resumable plans, and repeated-seed comparisons. `run.py` exposes these operations as subcommands. See [module and checkpoint layout](docs/implementation.md) for the data flow.
 
 The adapter API accepts exact `nn.Linear` names and optional spatial update probes. Weights use PyTorch's `[out, in]` layout and default backward-normalized FFTs. `k = floor(out * in * ratio)` and each coefficient costs two real trainable scalars. Merging folds the learned update into each frozen projection.
 

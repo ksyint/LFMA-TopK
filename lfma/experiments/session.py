@@ -11,7 +11,7 @@ import sys
 
 import yaml
 
-from lfma.experiments.catalog.protocols import ROOT, accepts, profile_key, read_catalog
+from lfma.experiments.protocols import ROOT, accepts, profile_key, read_catalog
 from lfma.models.fourier.core import GLUE_TASKS, validate_config
 
 
