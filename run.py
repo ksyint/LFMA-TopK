@@ -7,8 +7,8 @@ import argparse
 import json
 from collections.abc import Mapping
 from contextlib import nullcontext
-from lfma.benchmarks import task_metrics, make_loader, TextCollator
-from lfma.models import (
+from lfma.data.benchmarks.streams import task_metrics, make_loader, TextCollator
+from lfma.models.fourier.core import (
     AverageMeter,
     GLUE_TASKS,
     validate_config,
@@ -24,7 +24,7 @@ from lfma.models import (
     inject_adapters,
 )
 from pathlib import Path
-from lfma.checkpoints import (
+from lfma.artifacts.adapter.storage import (
     load_pretrained_adapter,
     read_metadata,
     save_pretrained_adapter,
@@ -33,7 +33,7 @@ from lfma.checkpoints import (
 )
 from PIL import Image
 from torch import nn
-from lfma.experiments import (
+from lfma.experiments.catalog.protocols import (
     inspect_adapter_cli,
     summarize_cli,
     grid_cli,
@@ -120,6 +120,7 @@ def apply_runtime_options(config, args):
         ('data_root', 'data', 'root'),
         ('dataset_dir', 'data', 'local_dir'),
         ('imagefolder', 'data', 'imagefolder'),
+        ('manifest_dir', 'data', 'manifest_dir'),
     ]:
         value = getattr(args, argument, None)
         if value is not None:
@@ -139,7 +140,7 @@ def train_main(args):
     device = cuda_device(args.device)
     if args.resume and args.config is None:
         config = read_metadata(args.resume)['config']
-        from lfma.models import apply_overrides
+        from lfma.models.fourier.core import apply_overrides
 
         config = apply_overrides(config, args.opts)
     else:
@@ -220,6 +221,7 @@ def parse_args():
         '--dataset-dir', help='Hugging Face DatasetDict saved with save_to_disk'
     )
     parser.add_argument('--imagefolder', help='Local train/validation/test class folders')
+    parser.add_argument('--manifest-dir', help='Portable JSONL benchmark bundle')
     parser.add_argument('--offline', action='store_true')
     parser.add_argument('--device', default='cuda')
     return parser.parse_args()
@@ -262,6 +264,7 @@ def eval_cli():
     parser.add_argument('--data-root')
     parser.add_argument('--dataset-dir')
     parser.add_argument('--imagefolder')
+    parser.add_argument('--manifest-dir')
     parser.add_argument('--offline', action='store_true')
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--output', default='results/evaluation')
@@ -356,8 +359,8 @@ def prepare_main(args):
         config = load_config('config.yaml')
         config['data'].update(task=args.task, root=args.data_root, cache_dir=args.dataset_cache)
         if args.task in GLUE_TASKS:
-            from lfma.benchmarks import dataset_from_hub
-            from lfma.models import GLUE_REVISION
+            from lfma.data.benchmarks.streams import dataset_from_hub
+            from lfma.models.fourier.core import GLUE_REVISION
 
             data = dataset_from_hub(config, 'nyu-mll/glue', args.task, GLUE_REVISION)
             if args.dataset_dir:
@@ -365,7 +368,7 @@ def prepare_main(args):
             print({split: len(records) for split, records in data.items()})
         elif args.task in IMAGE_HUB and args.dataset_dir:
             from datasets import DatasetDict
-            from lfma.benchmarks import dataset_from_hub
+            from lfma.data.benchmarks.streams import dataset_from_hub
 
             repo, revision = IMAGE_HUB[args.task]
             splits = (
@@ -388,7 +391,7 @@ def prepare_main(args):
             data.save_to_disk(args.dataset_dir)
             print({split: len(records) for split, records in data.items()})
         else:
-            from lfma.benchmarks import read_vision
+            from lfma.data.benchmarks.streams import read_vision
 
             for split in ('train', 'validation', 'test'):
                 dataset = read_vision(config, split)
@@ -436,7 +439,20 @@ def projection_cli():
 def main():
     import sys
 
+    from lfma.artifacts.adapter.validation import adapter_cli
+    from lfma.models.fourier.analysis.spectrum import spectrum_cli
+    from lfma.data.benchmarks.manifest import manifest_cli
+    from lfma.experiments.planning.session import plan_cli
+    from lfma.artifacts.transport.bundle import bundle_cli
+    from lfma.experiments.reporting.comparison import compare_cli
+
     commands = {
+        'adapter': adapter_cli,
+        'spectrum': spectrum_cli,
+        'manifest': manifest_cli,
+        'plan': plan_cli,
+        'bundle': bundle_cli,
+        'compare': compare_cli,
         'train': train_cli,
         'evaluate': eval_cli,
         'predict': predict_cli,

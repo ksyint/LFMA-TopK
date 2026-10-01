@@ -1,0 +1,2 @@
+{"id": "stsb:train:0", "sentence1": "A person slices bread.", "sentence2": "Someone cuts a loaf.", "label": 4.5}
+{"id": "stsb:train:1", "sentence1": "A dog sleeps on a rug.", "sentence2": "A plane flies above the sea.", "label": 0.0}

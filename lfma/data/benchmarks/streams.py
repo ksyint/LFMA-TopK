@@ -3,7 +3,7 @@
 import torch
 import os
 import numpy as np
-from lfma.models import GLUE_TASKS, IMAGE_HUB, num_labels, GLUE_REVISION, BACKBONES
+from lfma.models.fourier.core import GLUE_TASKS, IMAGE_HUB, num_labels, GLUE_REVISION, BACKBONES
 from pathlib import Path
 from torch.utils.data import Dataset, Subset, DataLoader
 
@@ -172,7 +172,16 @@ def read_glue(config, split):
 def make_loader(config, processor, split):
     if split not in ('train', 'validation', 'test'):
         raise ValueError('split must be train, validation, or test')
-    if BACKBONES[config['model']['backbone']]['family'] == 'vit':
+    if config['data'].get('manifest_dir'):
+        from lfma.data.benchmarks.manifest import ManifestDataset
+
+        dataset = ManifestDataset(config['data']['manifest_dir'], config['data']['task'], split)
+        collator = (
+            ImageCollator(processor)
+            if config['data']['task'] not in GLUE_TASKS
+            else TextCollator(processor, config)
+        )
+    elif BACKBONES[config['model']['backbone']]['family'] == 'vit':
         dataset, collator = read_vision(config, split), ImageCollator(processor)
     else:
         dataset, collator = read_glue(config, split), TextCollator(processor, config)

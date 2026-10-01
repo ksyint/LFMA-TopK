@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LFMA adapter identity",
+  "type": "object",
+  "required": [
+    "format",
+    "config",
+    "targets",
+    "epoch",
+    "base_model"
+  ],
+  "properties": {
+    "format": {
+      "const": "lfma-pretrained-v1"
+    },
+    "config": {
+      "type": "object"
+    },
+    "targets": {
+      "type": "object"
+    },
+    "epoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "base_model": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

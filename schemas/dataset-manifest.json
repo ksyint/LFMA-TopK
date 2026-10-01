@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LFMA dataset manifest",
+  "type": "object",
+  "required": [
+    "format",
+    "task",
+    "family",
+    "splits",
+    "summary"
+  ],
+  "properties": {
+    "format": {
+      "const": "lfma-dataset-manifest-v1"
+    },
+    "task": {
+      "enum": [
+        "cifar10",
+        "cifar100",
+        "cola",
+        "eurosat",
+        "fgvc_aircraft",
+        "mrpc",
+        "oxford_pets",
+        "qnli",
+        "resisc45",
+        "rte",
+        "sst2",
+        "stanford_cars",
+        "stsb"
+      ]
+    },
+    "family": {
+      "enum": [
+        "vision",
+        "text"
+      ]
+    },
+    "splits": {
+      "type": "object",
+      "required": [
+        "train",
+        "validation",
+        "test"
+      ]
+    },
+    "summary": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

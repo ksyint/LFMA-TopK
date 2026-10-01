@@ -24,7 +24,7 @@ python run.py prepare --task stanford_cars --dataset-dir datasets/stanford-cars-
 | RESISC45 | [timm/resisc45](https://huggingface.co/datasets/timm/resisc45) | Provided 18,900 train, 6,300 validation, 6,300 test |
 | Stanford Cars | [tanganke/stanford_cars](https://huggingface.co/datasets/tanganke/stanford_cars) | Original train/test shards, stratified training holdout |
 
-The torchvision loaders download and verify their archives under `--data-root`. The Hub loaders pin dataset revisions in `lfma/models.py`. Cars loads only `data/train-*.parquet` and `data/test-*.parquet`. Portable Hub datasets store `image` and integer `label` columns in a DatasetDict directory.
+The torchvision loaders download and verify their archives under `--data-root`. The Hub loaders pin dataset revisions in `lfma/models/fourier/core.py`. Cars loads only `data/train-*.parquet` and `data/test-*.parquet`. Portable Hub datasets store `image` and integer `label` columns in a DatasetDict directory.
 
 Images convert to RGB, resize to the saved ViT processor's 224×224 input, rescale pixels to [0,1], and normalize each channel with the processor's mean and standard deviation. Labels use the dataset's integer mapping. The two pinned ViTs use mean/std 0.5. The default pipeline keeps preprocessing identical across all image partitions.
 

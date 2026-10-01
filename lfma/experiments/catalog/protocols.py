@@ -7,7 +7,7 @@ import sys
 import json
 import math
 import struct
-from lfma.models import (
+from lfma.models.fourier.core import (
     BACKBONES,
     GLUE_TASKS,
     IMAGE_TASKS,
@@ -18,7 +18,7 @@ from lfma.models import (
 from copy import deepcopy
 from itertools import product
 from pathlib import Path
-from lfma.checkpoints import collect_results, write_summary
+from lfma.artifacts.adapter.storage import collect_results, write_summary
 
 PROTOCOLS = {
     'table1': 'Both ViTs, seven image datasets, support 0.05, scale 12, five seeds',
@@ -49,7 +49,7 @@ def accepts(config, protocol):
     return True
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 CATALOG = ROOT / 'experiments' / 'configs' / 'catalog'
 VISION_RATIOS = (0.0003, 0.05, 0.1)
 NLU_RATIOS = {

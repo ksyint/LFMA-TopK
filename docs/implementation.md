@@ -1,13 +1,13 @@
 # Modules and checkpoints
 
-`run.py` selects preparation, training, evaluation, prediction, and experiment protocols. Model construction and Fourier updates share their parameter definitions in `lfma/models.py`.
+`run.py` selects preparation, training, evaluation, prediction, and experiment protocols. Model construction and Fourier updates share their parameter definitions in `lfma/models/fourier/core.py`.
 
 | Module | Responsibility |
 | --- | --- |
-| `lfma/models.py` | Pinned model and dataset identities, Fourier layers, projection selection, and configuration |
-| `lfma/benchmarks.py` | Raw datasets, fixed partitions, processors, collators, and task metrics |
-| `lfma/checkpoints.py` | Sparse tensor serialization, strict restoration, merged artifacts, and seed summaries |
-| `lfma/experiments.py` | Profile catalogs, named protocols, run selection, and parameter inspection |
+| `lfma/models/fourier/core.py` | Pinned model and dataset identities, Fourier layers, projection selection, and configuration |
+| `lfma/data/benchmarks/streams.py` | Raw datasets, fixed partitions, processors, collators, and task metrics |
+| `lfma/artifacts/adapter/storage.py` | Sparse tensor serialization, strict restoration, merged artifacts, and seed summaries |
+| `lfma/experiments/catalog/protocols.py` | Profile catalogs, named protocols, run selection, and parameter inspection |
 | `run.py` | CUDA optimization, model preparation, evaluation, prediction, and command dispatch |
 | `experiments/configs/catalog/` | Complete vision and GLUE experiment configurations |
 

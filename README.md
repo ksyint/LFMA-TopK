@@ -18,7 +18,7 @@ Model training, evaluation, and prediction require CUDA. Choose a card with `CUD
 
 ## 2. Pretrained models and benchmark data
 
-The first training command downloads the requested pretrained weights and image processor/tokenizer automatically. Model revisions are pinned in `lfma/models.py` and recorded with each adapter.
+The first training command downloads the requested pretrained weights and image processor/tokenizer automatically. Model revisions are pinned in `lfma/models/fourier/core.py` and recorded with each adapter.
 
 | Backbone setting | Pretrained weights | Adapted projections |
 | --- | --- | --- |
@@ -161,6 +161,24 @@ A merged export is a standard Transformers model directory containing the adapte
 
 ## 6. Adapter modules
 
-`lfma/models.py` keeps Fourier support selection, adapter injection, pinned backbone definitions, and pretrained model construction together. `lfma/benchmarks.py` prepares raw examples and task metrics. `lfma/checkpoints.py` stores and restores sparse adapters, while `lfma/experiments.py` selects protocols and inspects parameter budgets. `run.py` runs the requested operation through subcommands. See [module and checkpoint layout](docs/implementation.md) for the data flow.
+`lfma/models/fourier/core.py` keeps Fourier support selection, adapter injection, pinned backbone definitions, and pretrained model construction together. `lfma/data/benchmarks/streams.py` prepares raw examples and task metrics. `lfma/artifacts/adapter/storage.py` stores and restores sparse adapters, while `lfma/experiments/catalog/protocols.py` selects protocols and inspects parameter budgets. `run.py` runs the requested operation through subcommands. See [module and checkpoint layout](docs/implementation.md) for the data flow.
 
 The adapter API accepts exact `nn.Linear` names and optional spatial update probes. Weights use PyTorch's `[out, in]` layout and default backward-normalized FFTs. `k = floor(out * in * ratio)` and each coefficient costs two real trainable scalars. Merging folds the learned update into each frozen projection.
+
+## 7. Portable datasets, experiment plans, and adapter analysis
+
+Nested packages separate Fourier model construction, raw benchmark streams, adapter artifacts, experiment planning, and result reporting. JSONL benchmark bundles use the same pretrained processors as downloaded datasets.
+
+```bash
+python run.py manifest --task sst2 --train data/sst2/train.jsonl --validation data/sst2/validation.jsonl --test data/sst2/test.jsonl --output datasets/sst2-manifest
+python run.py plan --directory results/plans/cifar10 --create --protocol table1 --backbones vit-base --tasks cifar10 --seeds 42 123 456
+python run.py plan --directory results/plans/cifar10 --execute --device cuda
+python run.py adapter --checkpoint results/vit-base/cifar10/best --hashes --write-integrity
+python run.py spectrum --checkpoint results/vit-base/cifar10/best --output reports/cifar10-spectrum --device cuda
+python run.py bundle --pack results/vit-base/cifar10/best --output exports/cifar10.tar.gz
+python run.py compare --root results/catalog --output reports/catalog
+```
+
+Training and evaluation accept `--manifest-dir` for a prepared JSONL bundle. Plans snapshot configurations, log each run, and continue from completed adapter checkpoints. Structural validation checks projection names, support sizes, tensor dtypes, processor files, and checkpoint byte ranges. Spectrum reports measure the learned support on CUDA. Adapter bundles carry a verified file inventory for transfer between prepared machines.
+
+[Benchmark and workflow guides](docs/index.md) describe each task, model preparation, named protocol, resumable plan, spectral report, and paired-seed comparison. The examples under `examples/manifests/text` and `examples/prediction` document accepted record fields.

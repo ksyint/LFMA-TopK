@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LFMA spectrum report",
+  "type": "object",
+  "required": [
+    "format",
+    "checkpoint",
+    "width",
+    "layers",
+    "head"
+  ],
+  "properties": {
+    "format": {
+      "const": "lfma-spectrum-v1"
+    },
+    "checkpoint": {
+      "type": "string"
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "layers": {
+      "type": "array"
+    },
+    "head": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

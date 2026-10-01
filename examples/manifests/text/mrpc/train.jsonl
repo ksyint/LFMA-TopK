@@ -1,0 +1,2 @@
+{"id": "mrpc:train:0", "sentence1": "The meeting starts at nine.", "sentence2": "The meeting begins at 9 a.m.", "label": 1}
+{"id": "mrpc:train:1", "sentence1": "A child reads a book.", "sentence2": "A person repairs a bicycle.", "label": 0}

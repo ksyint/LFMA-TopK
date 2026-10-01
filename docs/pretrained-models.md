@@ -9,7 +9,7 @@ Training resolves the selected model from Hugging Face and caches its weights, c
 | `roberta-base` | [RoBERTa-Base](https://huggingface.co/FacebookAI/roberta-base) | `checkpoints/pretrained/roberta-base/` |
 | `roberta-large` | [RoBERTa-Large](https://huggingface.co/FacebookAI/roberta-large) | `checkpoints/pretrained/roberta-large/` |
 
-Run the matching preparation command once on a machine with network access. Each command downloads the pinned revision defined in `lfma/models.py`.
+Run the matching preparation command once on a machine with network access. Each command downloads the pinned revision defined in `lfma/models/fourier/core.py`.
 
 ```bash
 python run.py prepare --backbone vit-base --local-dir checkpoints/pretrained/vit-base

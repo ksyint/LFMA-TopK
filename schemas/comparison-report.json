@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LFMA benchmark comparison",
+  "type": "object",
+  "required": [
+    "format",
+    "runs",
+    "settings",
+    "pareto"
+  ],
+  "properties": {
+    "format": {
+      "const": "lfma-benchmark-comparison-v1"
+    },
+    "runs": {
+      "type": "array"
+    },
+    "settings": {
+      "type": "array"
+    },
+    "pareto": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

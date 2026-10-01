@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LFMA experiment plan",
+  "type": "object",
+  "required": [
+    "format",
+    "created",
+    "runs"
+  ],
+  "properties": {
+    "format": {
+      "const": "lfma-experiment-plan-v1"
+    },
+    "created": {
+      "type": "string"
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "config",
+          "output",
+          "backbone",
+          "task",
+          "seed",
+          "epochs"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

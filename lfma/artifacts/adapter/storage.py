@@ -6,7 +6,7 @@ import csv
 import statistics
 from pathlib import Path
 from copy import deepcopy
-from lfma.models import (
+from lfma.models.fourier.core import (
     FourierLinear,
     BACKBONES,
     load_backbone,
@@ -76,6 +76,9 @@ def load_pretrained_adapter(directory, device='cuda', config=None):
     from safetensors.torch import load_file
 
     directory, device = Path(directory), cuda_device(device)
+    from lfma.artifacts.adapter.validation import validate_adapter
+
+    validate_adapter(directory)
     metadata = read_metadata(directory)
     config = deepcopy(config or metadata['config'])
     model, processor = load_backbone(config, device, directory / 'processor')
