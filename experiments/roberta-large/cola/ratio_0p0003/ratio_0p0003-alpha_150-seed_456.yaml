@@ -1,0 +1,31 @@
+model:
+  backbone: roberta-large
+  revision: null
+  cache_dir: .cache/huggingface
+  local_dir: null
+  offline: false
+adapter:
+  top_k_ratio: 0.0003
+  alpha: 150.0
+  init_std: 0.001
+data:
+  task: cola
+  root: datasets
+  cache_dir: .cache/datasets
+  local_dir: null
+  imagefolder: null
+  validation_fraction: 0.1
+  split_seed: 42
+  max_length: 512
+  workers: 4
+train:
+  seed: 456
+  epochs: 30
+  batch_size: 32
+  learning_rate: 0.05
+  head_learning_rate: 0.001
+  weight_decay: 0.0001
+  gradient_accumulation: 1
+  precision: fp32
+  num_threads: 4
+  save_dir: results/catalog/glue/roberta-large/cola/ratio_0p0003/alpha_150/seed_456

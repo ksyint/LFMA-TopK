@@ -170,6 +170,8 @@ def read_glue(config, split):
 
 
 def make_loader(config, processor, split):
+    from lfma.data.sampling import sampler_for, seed_worker
+
     if split not in ('train', 'validation', 'test'):
         raise ValueError('split must be train, validation, or test')
     if config['data'].get('manifest_dir'):
@@ -188,10 +190,12 @@ def make_loader(config, processor, split):
     return DataLoader(
         dataset,
         batch_size=config['train']['batch_size'],
-        shuffle=split == 'train',
+        sampler=sampler_for(dataset, config, split, processor),
         num_workers=config['data']['workers'],
         collate_fn=collator,
         pin_memory=True,
+        generator=torch.Generator().manual_seed(config['train']['seed']),
+        worker_init_fn=seed_worker,
     )
 
 

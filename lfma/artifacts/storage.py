@@ -20,6 +20,9 @@ from collections import defaultdict
 
 
 def read_metadata(directory):
+    from lfma.artifacts.resume import recover_checkpoint
+
+    directory = recover_checkpoint(directory)
     metadata = json.loads((Path(directory) / 'adapter_config.json').read_text())
     if metadata.get('format') != 'lfma-pretrained-v1':
         raise ValueError('Unsupported LFMA checkpoint format')
@@ -78,8 +81,8 @@ def load_pretrained_adapter(directory, device='cuda', config=None):
     directory, device = Path(directory), cuda_device(device)
     from lfma.artifacts.validation import validate_adapter
 
-    validate_adapter(directory)
     metadata = read_metadata(directory)
+    validate_adapter(directory)
     config = deepcopy(config or metadata['config'])
     model, processor = load_backbone(config, device, directory / 'processor')
     expected = set(target_names(model, config))

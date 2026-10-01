@@ -181,6 +181,8 @@ def train_main(args):
     history_path = output / 'history.jsonl'
     with history_path.open('a' if args.resume else 'w') as history:
         for current in range(epoch, config['train']['epochs']):
+            if hasattr(train_loader.sampler, 'set_epoch'):
+                train_loader.sampler.set_epoch(current)
             train_scores, _ = run_epoch(model, train_loader, device, optimizer, config)
             scores, _ = run_epoch(model, val_loader, device, config=config)
             improved = scores[primary] > best
@@ -444,8 +446,21 @@ def main():
     from lfma.experiments.session import plan_cli
     from lfma.artifacts.bundle import bundle_cli
     from lfma.experiments.comparison import compare_cli
+    from lfma.experiments.fit import fit_cli, evaluate_detailed_cli, diagnostics_cli, compose_cli
+    from lfma.experiments.analysis import analyze_cli, calibrate_cli
+    from lfma.experiments.prepare import data_audit_cli, subset_bundle_cli, budget_cli, budget_grid_cli
 
     commands = {
+        'fit': fit_cli,
+        'evaluate-detailed': evaluate_detailed_cli,
+        'analyze': analyze_cli,
+        'calibrate': calibrate_cli,
+        'audit-data': data_audit_cli,
+        'subset': subset_bundle_cli,
+        'budget': budget_cli,
+        'budget-grid': budget_grid_cli,
+        'diagnostics': diagnostics_cli,
+        'compose': compose_cli,
         'adapter': adapter_cli,
         'spectrum': spectrum_cli,
         'manifest': manifest_cli,

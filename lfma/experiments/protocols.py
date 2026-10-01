@@ -147,7 +147,7 @@ def write_catalog():
             config['train']['save_dir'] = str(Path('results/catalog') / key)
             validate_profile(config)
             profiles.append((key, config))
-    python_keys = set(sorted(key for key, _ in profiles)[:106])
+    python_keys = set(sorted(key for key, _ in profiles)[:96])
     for key, config in profiles:
         suffix = '.py' if key in python_keys else '.yaml'
         path = catalog_path(key).with_suffix(suffix)

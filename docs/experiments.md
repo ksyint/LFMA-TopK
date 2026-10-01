@@ -61,3 +61,38 @@ python run.py grid --protocol vision-ablation --alphas 120 --seeds 42 --dry-run
 ```
 
 The dry-run command checks every profile schema and output path, then reports the selected profiles. It does not load or download a model. `python run.py catalog` regenerates the committed catalog from the same axes and keeps each profile's configuration format.
+
+`fit` records CUDA timing, peak memory, gradient norms, optimizer groups, and aligned validation logits. It keeps the constant AdamW schedule by default. Optional linear or cosine schedules use optimizer-update coordinates, including gradient accumulation. Resume restores the optimizer, precision state, loader generator, sampler, and random streams from an epoch checkpoint.
+
+Each accumulation window averages over its actual number of examples, including a shorter final batch. `data-contract.json` records the ordered training and validation input fingerprints and loader sizes. Text fingerprints cover the task input fields. Image fingerprints cover decoded RGB pixels and dimensions. Resume verifies those fingerprints along with optimizer tensor names, shapes, group order, and update coordinates.
+
+`last/` and `best/` each contain `adapter_model.safetensors`, `adapter_config.json`, the processor, `execution_state.pt`, `execution.json`, `validation.npz`, and a hashed file inventory. The complete checkpoint is prepared in a temporary directory before replacing its destination. The epoch journal is written first so that a resumed checkpoint can discard later incomplete work. Checkpoint loading recovers the preceding complete directory if a process stopped between directory replacements.
+
+Set `train.patience` to a positive number to stop after that many validation epochs without an improvement exceeding `train.minimum_improvement`. The comparison anchor advances only after a qualifying improvement. `best/` still tracks every increase in the primary validation score. Both counters and the comparison anchor are restored when resuming. A run that already met its stopping criterion returns its saved history without starting another epoch.
+
+```bash
+python run.py fit --config config.yaml --opts train.save_dir results/detailed
+python run.py fit --resume results/detailed/last
+python run.py evaluate-detailed --checkpoint results/detailed/best --split test --output results/detailed/evaluation/test
+python run.py analyze --predictions results/detailed/evaluation/test/predictions.npz --output results/detailed/analysis
+```
+
+Detailed evaluation saves per-class confusion and recall, top-k accuracy, reliability bins, Brier score, and confidence-based coverage. STS-B reports Pearson and rank correlation, residual bins, and absolute-error examples. Bootstrap resamples groups when a manifest provides `group`. Use `analyze --baseline other/predictions.npz` for an identity-aligned paired comparison. `calibrate --validation validation.npz --predictions test.npz --output results/calibrated` fits its temperature only from validation labels.
+
+```bash
+python run.py audit-data --manifest-dir datasets/cifar10 --inspect-images --output results/data-audit.json
+python run.py subset --manifest-dir datasets/cifar10 --count 1000 --output datasets/cifar10-subset
+python run.py budget --backbone vit-base --ratio 0.0003 --task cifar10
+python run.py budget-grid --backbones vit-base vit-large --ratios 0.0003 0.05 0.1 --output results/budgets.json
+python run.py diagnostics --checkpoint results/detailed/best --output results/spectrum.json --singular-values
+```
+
+The dataset audit checks content identities, conflicting labels, shared groups, image decoding, and label distribution. Subsets change only the training selection and preserve the evaluation partitions. `data.sampling.strategy=length` groups text examples by length during training, while evaluation always follows manifest order.
+
+Length sampling uses the selected pretrained tokenizer with the same special tokens and truncation length as the collator. Complete batches are shuffled within the epoch and a partial final batch stays at the end. The sampler saves the token-length fingerprint, bucket size, and epoch for resume.
+
+Prediction archives include input-content fingerprints and optional manifest groups. Calibration checks the actual input content across the fitting and assessment sets, even when they have different split names or record IDs. Confidence coverage includes every example tied at the selected threshold. Paired comparisons check aligned reference labels, groups, and content fingerprints before resampling.
+
+`compose --checkpoints run-a/best run-b/best --weights 0.5 0.5 --output results/composed` combines task-compatible sparse updates on CUDA. Each input scale is absorbed into its coefficients before support union. `--maximum-coefficients` retains the strongest union entries and reports retained spectral energy. The output remains a standard adapter directory accepted by `evaluate-detailed` and `predict`.
+
+Composition compares the frozen CUDA backbone parameters and buffers across all inputs. Its per-layer report includes the spatial residual of the combined update against the weighted inputs. The saved adapter metadata records each layer's actual support size and scale after composition.
