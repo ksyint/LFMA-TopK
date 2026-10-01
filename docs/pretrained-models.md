@@ -9,13 +9,13 @@ Training resolves the selected model from Hugging Face and caches its weights, c
 | `roberta-base` | [RoBERTa-Base](https://huggingface.co/FacebookAI/roberta-base) | `checkpoints/pretrained/roberta-base/` |
 | `roberta-large` | [RoBERTa-Large](https://huggingface.co/FacebookAI/roberta-large) | `checkpoints/pretrained/roberta-large/` |
 
-Run the matching preparation command once on a machine with network access. Each command downloads the pinned revision defined in `experiments/protocols/models.py`.
+Run the matching preparation command once on a machine with network access. Each command downloads the pinned revision defined in `lfma/models.py`.
 
 ```bash
-python prepare.py --backbone vit-base --local-dir checkpoints/pretrained/vit-base
-python prepare.py --backbone vit-large --local-dir checkpoints/pretrained/vit-large
-python prepare.py --backbone roberta-base --local-dir checkpoints/pretrained/roberta-base
-python prepare.py --backbone roberta-large --local-dir checkpoints/pretrained/roberta-large
+python run.py prepare --backbone vit-base --local-dir checkpoints/pretrained/vit-base
+python run.py prepare --backbone vit-large --local-dir checkpoints/pretrained/vit-large
+python run.py prepare --backbone roberta-base --local-dir checkpoints/pretrained/roberta-base
+python run.py prepare --backbone roberta-large --local-dir checkpoints/pretrained/roberta-large
 ```
 
 You can also download through the Hub CLI. This example fetches the complete ViT-B model files to the same directory.
@@ -41,8 +41,8 @@ The model loader checks encoder type, hidden width, and layer count against the 
 A prepared model works with automatic dataset downloads or fully local data:
 
 ```bash
-python train.py --config config.yaml --model-dir checkpoints/pretrained/vit-base
-python train.py --config experiments/configs/catalog/glue/roberta-large/mrpc/ratio_0p0005/alpha_150/seed_42.yaml \
+python run.py train --config config.yaml --model-dir checkpoints/pretrained/vit-base
+python run.py train --config experiments/configs/catalog/glue/roberta-large/mrpc/ratio_0p0005/alpha_150/seed_42.yaml \
   --model-dir checkpoints/pretrained/roberta-large --dataset-dir datasets/glue-mrpc --offline
 ```
 

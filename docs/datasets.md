@@ -5,13 +5,13 @@ The experiment loaders consume raw images or text records. Preparation downloads
 ## Image benchmarks
 
 ```bash
-python prepare.py --task cifar10 --data-root datasets
-python prepare.py --task cifar100 --data-root datasets
-python prepare.py --task oxford_pets --data-root datasets
-python prepare.py --task fgvc_aircraft --data-root datasets
-python prepare.py --task eurosat --data-root datasets
-python prepare.py --task resisc45 --dataset-dir datasets/resisc45-arrow
-python prepare.py --task stanford_cars --dataset-dir datasets/stanford-cars-arrow
+python run.py prepare --task cifar10 --data-root datasets
+python run.py prepare --task cifar100 --data-root datasets
+python run.py prepare --task oxford_pets --data-root datasets
+python run.py prepare --task fgvc_aircraft --data-root datasets
+python run.py prepare --task eurosat --data-root datasets
+python run.py prepare --task resisc45 --dataset-dir datasets/resisc45-arrow
+python run.py prepare --task stanford_cars --dataset-dir datasets/stanford-cars-arrow
 ```
 
 | Task | Acquisition | Split handling |
@@ -24,7 +24,7 @@ python prepare.py --task stanford_cars --dataset-dir datasets/stanford-cars-arro
 | RESISC45 | [timm/resisc45](https://huggingface.co/datasets/timm/resisc45) | Provided 18,900 train, 6,300 validation, 6,300 test |
 | Stanford Cars | [tanganke/stanford_cars](https://huggingface.co/datasets/tanganke/stanford_cars) | Original train/test shards, stratified training holdout |
 
-The torchvision loaders download and verify their archives under `--data-root`. The Hub loaders pin dataset revisions in `experiments/protocols/datasets/vision.py`. Cars loads only `data/train-*.parquet` and `data/test-*.parquet`. Portable Hub datasets store `image` and integer `label` columns in a DatasetDict directory.
+The torchvision loaders download and verify their archives under `--data-root`. The Hub loaders pin dataset revisions in `lfma/models.py`. Cars loads only `data/train-*.parquet` and `data/test-*.parquet`. Portable Hub datasets store `image` and integer `label` columns in a DatasetDict directory.
 
 Images convert to RGB, resize to the saved ViT processor's 224×224 input, rescale pixels to [0,1], and normalize each channel with the processor's mean and standard deviation. Labels use the dataset's integer mapping. The two pinned ViTs use mean/std 0.5. The default pipeline keeps preprocessing identical across all image partitions.
 
@@ -45,8 +45,8 @@ Include all ten CIFAR-10 classes in each split. Other benchmarks use their own c
 ## GLUE text data
 
 ```bash
-python prepare.py --task mrpc --dataset-dir datasets/glue-mrpc
-python prepare.py --task sst2 --dataset-dir datasets/glue-sst2
+python run.py prepare --task mrpc --dataset-dir datasets/glue-mrpc
+python run.py prepare --task sst2 --dataset-dir datasets/glue-sst2
 ```
 
 The same command accepts `qnli`, `rte`, `cola`, and `stsb`. It fetches the task subset from [nyu-mll/glue](https://huggingface.co/datasets/nyu-mll/glue) at the pinned dataset revision and saves train, validation, and test partitions. Pass the directory to `--dataset-dir` when training or evaluating offline.

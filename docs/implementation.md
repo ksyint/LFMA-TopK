@@ -1,19 +1,15 @@
 # Modules and checkpoints
 
-The root scripts expose individual experiment operations. `train.py` handles configuration, checkpoints, and epoch selection. The transformer and data details stay in their own packages.
+`run.py` selects preparation, training, evaluation, prediction, and experiment protocols. Model construction and Fourier updates share their parameter definitions in `lfma/models.py`.
 
 | Module | Responsibility |
 | --- | --- |
-| `experiments/protocols/models.py` | Pinned encoder identities and architecture sizes |
-| `experiments/protocols/datasets/` | Dataset names, label counts, task fields, and pinned Hub revisions |
-| `experiments/tasks/models/vision/` | ImageNet-21k ViT construction and image processor |
-| `experiments/tasks/models/language/` | RoBERTa construction and tokenizer |
-| `experiments/tasks/models/projections.py` | Query or query/value target selection |
-| `experiments/data/benchmarks/` | Raw datasets, fixed partitions, and DataLoaders |
-| `experiments/data/preprocessing/` | Batch image processing and dynamic text padding |
-| `experiments/optimization/loops/` | Supervised forward pass, gradient accumulation, and prediction |
-| `adapters/io/pretrained/` | Sparse tensor serialization, model identity, and restoration |
-| `experiments/evaluation/reports/` | Parameter budgets and repeated-seed aggregation |
+| `lfma/models.py` | Pinned model and dataset identities, Fourier layers, projection selection, and configuration |
+| `lfma/benchmarks.py` | Raw datasets, fixed partitions, processors, collators, and task metrics |
+| `lfma/checkpoints.py` | Sparse tensor serialization, strict restoration, merged artifacts, and seed summaries |
+| `lfma/experiments.py` | Profile catalogs, named protocols, run selection, and parameter inspection |
+| `run.py` | CUDA optimization, model preparation, evaluation, prediction, and command dispatch |
+| `experiments/configs/catalog/` | Complete vision and GLUE experiment configurations |
 
 The frozen projection weight has shape `[out, in]`. Support selection computes a two-dimensional FFT of the initialization probe and retains the largest `floor(out * in * ratio)` magnitudes. The selected indices remain fixed. Each selected complex coefficient is stored as two FP32 trainable values. The real inverse FFT, multiplied by `alpha`, produces the update applied in the linear layer.
 
@@ -35,6 +31,6 @@ best/
 
 `adapter_config.json` records the full experiment configuration, target scales and support sizes, selected epoch, and best validation score. `processor/` stores the image processor or tokenizer used in the run. `training_state.pt` stores AdamW state and Torch/CUDA random states. Resume restores these states, then applies the requested coefficient/head learning rates and weight decay.
 
-`inspect_adapter.py` computes the configured encoder and head sizes without loading weights. When given `--checkpoint`, it checks coefficient and classifier counts from the safetensors header. Support-index buffers are reported separately from trainable scalars.
+`run.py inspect` computes the configured encoder and head sizes without loading weights. When given `--checkpoint`, it checks coefficient and classifier counts from the safetensors header. Support-index buffers are reported separately from trainable scalars.
 
 Merged exports replace every LFMA wrapper with a standard linear projection containing the adapted weight. The exported Hugging Face model includes the learned head and processor. Its `lfma_merge.json` manifest records the base identity, revision, task, support configuration, selected epoch, target projections, and file sizes.
