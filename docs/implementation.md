@@ -10,8 +10,8 @@
 | `lfma/adaptation/injection.py` | Named projection replacement and merged model construction |
 | `lfma/data/streams.py` | Raw datasets, fixed partitions, processors, collators, and task metrics |
 | `lfma/artifacts/storage.py` | Sparse tensor serialization, strict restoration, merged artifacts, and seed summaries |
-| `lfma/artifacts/validation.py` | Tensor header, processor, and configuration checks |
-| `lfma/artifacts/bundle.py` | Verified adapter packing and extraction |
+| `lfma/artifacts/packaging/validation.py` | Tensor header, processor, and configuration checks |
+| `lfma/artifacts/packaging/bundle.py` | Verified adapter packing and extraction |
 | `lfma/experiments/protocols.py` | Profile catalogs, named protocols, run selection, and parameter inspection |
 | `lfma/experiments/session.py` | Resumable training and evaluation plans |
 | `lfma/experiments/comparison.py` | Repeated-seed aggregation and paired comparisons |

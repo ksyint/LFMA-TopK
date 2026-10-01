@@ -8,7 +8,7 @@ import shutil
 import tarfile
 from tempfile import TemporaryDirectory
 
-from lfma.artifacts.validation import (
+from lfma.artifacts.packaging.validation import (
     artifact_inventory,
     validate_adapter,
     verify_integrity,

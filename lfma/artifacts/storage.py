@@ -76,7 +76,7 @@ def load_pretrained_adapter(directory, device='cuda', config=None):
     from safetensors.torch import load_file
 
     directory, device = Path(directory), cuda_device(device)
-    from lfma.artifacts.validation import validate_adapter
+    from lfma.artifacts.packaging.validation import validate_adapter
 
     validate_adapter(directory)
     metadata = read_metadata(directory)

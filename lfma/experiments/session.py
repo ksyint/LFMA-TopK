@@ -176,7 +176,7 @@ class PlanSession:
                 command.extend(['--resume', str(checkpoint)])
             self._record(entry, 'training', resumed_epoch=completed_epochs)
             self._command(command, output, 'train')
-        from lfma.artifacts.validation import validate_adapter
+        from lfma.artifacts.packaging.validation import validate_adapter
 
         audit = validate_adapter(output / 'last')
         if audit['epoch'] != entry['epochs']:

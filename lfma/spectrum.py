@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch
 
-from lfma.artifacts.validation import validate_adapter
+from lfma.artifacts.packaging.validation import validate_adapter
 from lfma.core import BACKBONES, cuda_device
 
 

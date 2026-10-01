@@ -438,11 +438,11 @@ def projection_cli():
 def main():
     import sys
 
-    from lfma.artifacts.validation import adapter_cli
+    from lfma.artifacts.packaging.validation import adapter_cli
     from lfma.spectrum import spectrum_cli
     from lfma.data.manifest import manifest_cli
     from lfma.experiments.session import plan_cli
-    from lfma.artifacts.bundle import bundle_cli
+    from lfma.artifacts.packaging.bundle import bundle_cli
     from lfma.experiments.comparison import compare_cli
 
     commands = {
