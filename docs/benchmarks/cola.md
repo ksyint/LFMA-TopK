@@ -4,7 +4,7 @@ Use the official GLUE `cola` records with fields `sentence`. Classification labe
 
 ```bash
 python run.py prepare --task cola --dataset-dir datasets/glue-cola
-python run.py train --config experiments/roberta-base/cola/ratio_0p0005-alpha_150-seed_42.py --dataset-dir datasets/glue-cola --device cuda
+python run.py train --config experiments/roberta-base/cola/ratio_0p0005/ratio_0p0005-alpha_150-seed_42.py --dataset-dir datasets/glue-cola --device cuda
 ```
 
 The selected RoBERTa profile tokenizes with its pinned pretrained tokenizer, truncates at the configured context budget, and dynamically pads each batch. The primary validation metric is `matthews_correlation`. The labeled validation split supplies local scores, while hidden-label test records produce predictions.

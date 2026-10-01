@@ -10,9 +10,18 @@ experiments/
   roberta-base/
     cola-ratio_0p0005-alpha_150-seed_1024.py
     mrpc/ratio_0p0016-alpha_150-seed_42.py
+    cola/
+      ratio_0p0016-alpha_150-seed_42.py
+      ratio_0p0010/ratio_0p0010-alpha_150-seed_42.py
+  vit-base/
+    cifar10/
+      ratio_0p1000-alpha_12-seed_42.yaml
+      ratio_0p0500/
+        ratio_0p0500-alpha_120-seed_42.yaml
+        alpha_12/ratio_0p0500-alpha_12-seed_456.yaml
 ```
 
-Representative profiles sit beside each backbone's task folders. The catalog separates optimization seeds from image split seeds. Every profile uses `data.split_seed: 42`, so varying `train.seed` does not change image train/validation/test membership.
+Representative profiles sit beside each backbone's task folders. CIFAR-10 separates support ratios and scales, while CoLA groups support ratios. Their task and ratio folders also retain representative profiles. The catalog separates optimization seeds from image split seeds. Every profile uses `data.split_seed: 42`, so varying `train.seed` does not change image train/validation/test membership.
 
 | Protocol | Backbones | Support ratios | Scales | Profiles |
 | --- | --- | --- | --- | --- |

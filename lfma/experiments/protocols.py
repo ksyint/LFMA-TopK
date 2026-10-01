@@ -107,7 +107,17 @@ def catalog_path(key):
         and seed in ('seed_1024', 'seed_123')
     ):
         return CATALOG / backbone / f'{task}-{ratio}-{alpha}-{seed}'
-    return CATALOG / backbone / task / f'{ratio}-{alpha}-{seed}'
+    folder = CATALOG / backbone / task
+    if task == 'cifar10':
+        if (ratio, alpha) != ('ratio_0p1000', 'alpha_12') or seed not in ('seed_42', 'seed_123'):
+            folder /= ratio
+            if alpha != 'alpha_120' or seed not in ('seed_42', 'seed_123'):
+                folder /= alpha
+    elif task == 'cola':
+        largest = 'ratio_0p0016' if backbone == 'roberta-base' else 'ratio_0p0005'
+        if ratio != largest or seed not in ('seed_42', 'seed_123'):
+            folder /= ratio
+    return folder / f'{ratio}-{alpha}-{seed}'
 
 
 def write_catalog():
