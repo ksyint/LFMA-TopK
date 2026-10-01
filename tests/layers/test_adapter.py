@@ -12,7 +12,7 @@ def test_only_selected_coefficients_train_and_base_frozen():
     assert adapter.c.grad.abs().sum() > 0
     assert base.weight.grad is None and not base.weight.requires_grad
     spectrum = torch.fft.fft2(adapter.delta_weight() / adapter.alpha)
-    # Real reconstruction creates conjugate partners; the stored sparse spectrum
+    # Real reconstruction creates conjugate partners. the stored sparse spectrum
     # still has exactly k entries. Do not incorrectly assert spectral sparsity of Re.
     assert torch.isfinite(spectrum).all()
 

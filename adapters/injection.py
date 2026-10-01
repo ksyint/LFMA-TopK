@@ -16,8 +16,7 @@ def inject_adapters(model: nn.Module, target_names: Iterable[str],
     """Freeze a model and replace exact named nn.Linear targets.
 
     Pass externally obtained spatial update probes to control initialization.
-    Otherwise use seeded Gaussian updates: the manuscript does not prescribe
-    their distribution. A zero-sized floored support is an explicit error.
+    Otherwise use seeded Gaussian spatial updates. A zero-sized floored support is an explicit error.
     """
     names = list(target_names)
     if not names or len(set(names)) != len(names):

@@ -11,7 +11,7 @@ from adapters.spectral import topk_indices
 
 
 class FourierLinear(nn.Module):
-    """W = W0 + alpha * Re(IFFT2(S(c))); exactly 2*k real adapter scalars.
+    """W = W0 + alpha * Re(IFFT2(S(c))). exactly 2*k real adapter scalars.
 
     Shapes use PyTorch's [out_features, in_features] weight convention. The
     support is selected once from FFT2(delta_init), including its coefficients.

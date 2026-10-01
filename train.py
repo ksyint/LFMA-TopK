@@ -1,107 +1,92 @@
 #!/usr/bin/env python3
-"""Frozen-feature adaptation with root-level, explicit epoch functions.
-
-python train.py --config config.yaml --opts train.epochs 50 adapter.alpha 12
-"""
+"""Train LFMA on ImageNet-21k ViT or RoBERTa using raw benchmark examples."""
 import argparse
 import json
 from pathlib import Path
 
 import torch
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
 
-from adapters import inject_adapters
-from adapters.io import load_adapted_model, save_checkpoint
-from experiments.data import dataset
-from model import make_model
-from utils import AverageMeter, cuda_device, load_config, set_seed
-
-
-def configure_optimizer(model, cfg):
-    parameters = [p for p in model.parameters() if p.requires_grad]
-    return torch.optim.AdamW(parameters, lr=cfg['learning_rate'], weight_decay=cfg['weight_decay'])
+from adapters.io.pretrained import load_pretrained_adapter, read_metadata, save_pretrained_adapter
+from experiments.data.benchmarks import make_loader
+from experiments.tasks import GLUE_TASKS, validate_config
+from experiments.tasks.backbones import insert_adapters, load_backbone
+from experiments.optimization import configure_optimizer, run_epoch
+from experiments.optimization.state import restore_training_state
+from experiments.runtime import apply_runtime_options
+from utils import cuda_device, load_config, set_seed
 
 
-def run_epoch(model, loader, device, optimizer=None):
-    train = optimizer is not None
-    model.train(train)
-    loss_meter, accuracy_meter = AverageMeter(), AverageMeter()
-    context = torch.enable_grad() if train else torch.no_grad()
-    with context:
-        for x, y in loader:
-            x, y = x.to(device), y.to(device)
-            if train:
-                optimizer.zero_grad(set_to_none=True)
-            logits = model(x)
-            loss = F.cross_entropy(logits, y)
-            if train:
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_((p for p in model.parameters() if p.requires_grad), 1.0)
-                optimizer.step()
-            loss_meter.update(loss.item(), len(y))
-            accuracy_meter.update((logits.argmax(-1) == y).float().mean().item(), len(y))
-    return {'loss': loss_meter.avg, 'accuracy': accuracy_meter.avg, 'samples': loss_meter.count}
+
 
 
 def main(args):
-    args.device = cuda_device(args.device)
-    cfg = load_config(args.config, args.opts)
-    if args.smoke:
-        cfg['train'].update(epochs=3, learning_rate=0.05, batch_size=64)
-        cfg['adapter'].update(top_k_ratio=0.5, alpha=12.0)
-    set_seed(cfg['train']['seed'])
-    torch.set_num_threads(cfg['train'].get('num_threads', 1))
-    start_epoch, best = 0, float('inf')
-    if args.resume:
-        model, saved = load_adapted_model(args.resume, args.device)
-        if saved['config']['model'] != cfg['model'] or saved['config']['adapter'] != cfg['adapter']:
-            raise ValueError('Resume model and adapter settings must match the saved checkpoint')
-        start_epoch = saved['epoch']
-        best = saved.get('best_loss', saved['metrics']['loss'])
+    device = cuda_device(args.device)
+    if args.resume and args.config is None:
+        config = read_metadata(args.resume)['config']
+        # Apply dotted overrides through the same strict loader without temporary files.
+        from utils import apply_overrides
+        config = apply_overrides(config, args.opts)
     else:
-        model = make_model(cfg).to(args.device)
-        if args.base_checkpoint:
-            model.load_state_dict(torch.load(args.base_checkpoint, map_location=args.device, weights_only=True))
-        inject_adapters(model, seed=cfg['train']['seed'], **cfg['adapter'])
-    optimizer = configure_optimizer(model, cfg['train'])
-    if args.resume:
-        optimizer.load_state_dict(saved['optimizer'])
-        for group in optimizer.param_groups:
-            group['lr'] = cfg['train']['learning_rate']
-    train_loader = DataLoader(dataset(cfg, args.data, 'train'), batch_size=cfg['train']['batch_size'], shuffle=True)
-    val_loader = DataLoader(dataset(cfg, args.data, 'val'), batch_size=128)
-    initial = run_epoch(model, train_loader, args.device)
-    output = Path(cfg['train']['save_dir'])
+        config = load_config(args.config or 'config.yaml', args.opts)
+    config = apply_runtime_options(config, args)
+    validate_config(config)
+    set_seed(config['train']['seed'])
+    torch.set_num_threads(config['train']['num_threads'])
+    output = Path(config['train']['save_dir'])
     output.mkdir(parents=True, exist_ok=True)
-    history = []
-    for epoch in range(start_epoch, cfg['train']['epochs']):
-        train_scores = run_epoch(model, train_loader, args.device, optimizer)
-        scores = run_epoch(model, val_loader, args.device)
-        is_best = scores['loss'] < best
-        best = min(best, scores['loss'])
-        history.append({'epoch': epoch + 1, 'train': train_scores, 'validation': scores})
-        save_checkpoint({'config': cfg, 'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
-                         'epoch': epoch + 1, 'best_loss': best, 'metrics': scores}, output, is_best)
-        print(f"Epoch {epoch + 1:03d} | train loss {train_scores['loss']:.4f} | val {scores}")
-    final = run_epoch(model, train_loader, args.device)
-    report = {'task': 'npz_features' if args.data else 'synthetic_sanity', 'initial_train': initial,
-              'final_train': final, 'history': history,
-              'trainable_real_scalars': sum(p.numel() for p in model.parameters() if p.requires_grad)}
-    (output / 'metrics.json').write_text(json.dumps(report, indent=2) + '\n')
-    if args.smoke and final['loss'] >= initial['loss']:
-        raise RuntimeError('Smoke optimization did not reduce training loss')
+    epoch, best = 0, float('-inf')
+    if args.resume:
+        saved = read_metadata(args.resume)
+        for section in ('adapter',):
+            if saved['config'][section] != config[section]:
+                raise ValueError('Resume adapter configuration must match the checkpoint')
+        if saved['config']['model']['backbone'] != config['model']['backbone'] or saved['config']['data']['task'] != config['data']['task']:
+            raise ValueError('Resume backbone and task must match the checkpoint')
+        config['model']['revision'] = saved['config']['model']['revision']
+        model, processor, config, metadata = load_pretrained_adapter(args.resume, device, config)
+        epoch, best = metadata['epoch'], metadata['best_score']
+    else:
+        model, processor = load_backbone(config, device)
+        insert_adapters(model, config)
+    if config['train']['epochs'] <= epoch:
+        raise ValueError('Training epochs must exceed the resumed checkpoint epoch')
+    optimizer = configure_optimizer(model, config['train'])
+    if args.resume:
+        restore_training_state(args.resume, optimizer, config['train'], device)
+    train_loader, val_loader = (make_loader(config, processor, split) for split in ('train', 'validation'))
+    primary = GLUE_TASKS.get(config['data']['task'], (None, None, 'accuracy'))[2]
+    history_path = output / 'history.jsonl'
+    with history_path.open('a' if args.resume else 'w') as history:
+        for current in range(epoch, config['train']['epochs']):
+            train_scores, _ = run_epoch(model, train_loader, device, optimizer, config)
+            scores, _ = run_epoch(model, val_loader, device, config=config)
+            improved = scores[primary] > best
+            best = max(best, scores[primary])
+            record = {'epoch': current + 1, 'train': train_scores, 'validation': scores}
+            history.write(json.dumps(record) + '\n')
+            history.flush()
+            save_pretrained_adapter(model, processor, config, output / 'last', optimizer, current + 1, best)
+            if improved:
+                save_pretrained_adapter(model, processor, config, output / 'best', optimizer, current + 1, best)
+            print(record, flush=True)
+    counts = {'adapter_real_scalars': sum(p.numel() for n, p in model.named_parameters() if n.endswith('.c')),
+              'head_parameters': sum(p.numel() for p in model.classifier.parameters()),
+              'best_validation_metric': primary, 'best_validation_score': best, 'epoch': config['train']['epochs']}
+    (output / 'metrics.json').write_text(json.dumps(counts, indent=2) + '\n')
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='config.yaml')
+    parser.add_argument('--config')
     parser.add_argument('--opts', nargs='*', default=[])
-    parser.add_argument('--data', help='NPZ feature dataset')
-    parser.add_argument('--base-checkpoint', help='Unadapted FeatureMLP state_dict')
-    parser.add_argument('--resume', help='Continue an adapter checkpoint')
+    parser.add_argument('--resume', help='LFMA adapter checkpoint directory')
+    parser.add_argument('--cache-dir')
+    parser.add_argument('--model-dir', help='Local pretrained encoder directory')
+    parser.add_argument('--data-root')
+    parser.add_argument('--dataset-dir', help='Hugging Face DatasetDict saved with save_to_disk')
+    parser.add_argument('--imagefolder', help='Local train/validation/test class folders')
+    parser.add_argument('--offline', action='store_true')
     parser.add_argument('--device', default='cuda')
-    parser.add_argument('--smoke', action='store_true')
     return parser.parse_args()
 
 

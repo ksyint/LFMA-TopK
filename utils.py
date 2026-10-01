@@ -34,6 +34,10 @@ def set_seed(seed):
 def load_config(path, opts=None):
     with open(path, encoding='utf-8') as handle:
         cfg = yaml.safe_load(handle)
+    return apply_overrides(cfg, opts)
+
+
+def apply_overrides(cfg, opts=None):
     opts = opts or []
     if len(opts) % 2:
         raise ValueError('--opts expects pairs: dotted.key value')
