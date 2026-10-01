@@ -7,7 +7,7 @@ import sys
 import json
 import math
 import struct
-from lfma.models.fourier.core import (
+from lfma.core import (
     BACKBONES,
     GLUE_TASKS,
     IMAGE_TASKS,
@@ -18,7 +18,8 @@ from lfma.models.fourier.core import (
 from copy import deepcopy
 from itertools import product
 from pathlib import Path
-from lfma.artifacts.adapter.storage import collect_results, write_summary
+from pprint import pformat
+from lfma.artifacts.storage import collect_results, write_summary
 
 PROTOCOLS = {
     'table1': 'Both ViTs, seven image datasets, support 0.05, scale 12, five seeds',
@@ -50,7 +51,7 @@ def accepts(config, protocol):
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG = ROOT / 'experiments' / 'configs' / 'catalog'
+CATALOG = ROOT / 'experiments'
 VISION_RATIOS = (0.0003, 0.05, 0.1)
 NLU_RATIOS = {
     'roberta-base': (0.0016, 0.001, 0.0005),
@@ -82,9 +83,37 @@ def validate_profile(config):
     return validate_config(config)
 
 
+def catalog_path(key):
+    family, backbone, task, ratio, alpha, seed = key.parts
+    if (backbone, task, ratio, alpha) == (
+        'vit-base',
+        'cifar10',
+        'ratio_0p0500',
+        'alpha_12',
+    ) and seed in ('seed_42', 'seed_123'):
+        return CATALOG / f'{backbone}-{task}-{ratio}-{alpha}-{seed}'
+    minimum = {
+        'vit-base': 'ratio_0p0003',
+        'vit-large': 'ratio_0p0003',
+        'roberta-base': 'ratio_0p0005',
+        'roberta-large': 'ratio_0p0001',
+    }
+    first_task = 'cifar10' if family == 'vision' else 'cola'
+    first_alpha = 'alpha_12' if family == 'vision' else 'alpha_150'
+    if (
+        task == first_task
+        and ratio == minimum[backbone]
+        and alpha == first_alpha
+        and seed in ('seed_1024', 'seed_123')
+    ):
+        return CATALOG / backbone / f'{task}-{ratio}-{alpha}-{seed}'
+    return CATALOG / backbone / task / f'{ratio}-{alpha}-{seed}'
+
+
 def write_catalog():
-    base = yaml.safe_load((ROOT / 'config.yaml').read_text())
+    base = load_config(ROOT / 'config.yaml')
     paths = []
+    profiles = []
     for backbone, spec in BACKBONES.items():
         vision = spec['family'] == 'vit'
         tasks, ratios, seeds = (
@@ -107,21 +136,39 @@ def write_catalog():
             key = profile_key(config)
             config['train']['save_dir'] = str(Path('results/catalog') / key)
             validate_profile(config)
-            path = CATALOG / key.with_suffix('.yaml')
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(
+            profiles.append((key, config))
+    python_keys = set(sorted(key for key, _ in profiles)[:106])
+    for key, config in profiles:
+        suffix = '.py' if key in python_keys else '.yaml'
+        path = catalog_path(key).with_suffix(suffix)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if suffix == '.py':
+            source = 'cfg = ' + pformat(config, width=88, sort_dicts=False) + '\n'
+        else:
+            source = (
                 '# Pretrained LFMA experiment: backbone, benchmark, support ratio, scale, seed.\n'
                 + yaml.safe_dump(config, sort_keys=False)
             )
-            paths.append(path)
+        path.write_text(source)
+        path.with_suffix('.yaml' if suffix == '.py' else '.py').unlink(missing_ok=True)
+        paths.append(path)
     return paths
 
 
 def read_catalog():
     entries = []
-    for path in sorted(CATALOG.rglob('*.yaml')):
-        config = yaml.safe_load(path.read_text())
+    paths = (
+        path
+        for path in CATALOG.rglob('*')
+        if path.is_file() and path.suffix in ('.yaml', '.yml', '.py')
+    )
+    for path in paths:
+        config = load_config(path)
         entries.append((path, config, validate_profile(config)))
+    entries.sort(key=lambda entry: profile_key(entry[1]).as_posix())
+    keys = [profile_key(config) for _, config, _ in entries]
+    if len(keys) != len(set(keys)):
+        raise ValueError('Catalog profiles must have unique names across configuration formats')
     if not entries:
         raise ValueError('Experiment catalog is empty')
     outputs = [config['train']['save_dir'] for _, config, _ in entries]

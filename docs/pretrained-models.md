@@ -9,7 +9,7 @@ Training resolves the selected model from Hugging Face and caches its weights, c
 | `roberta-base` | [RoBERTa-Base](https://huggingface.co/FacebookAI/roberta-base) | `checkpoints/pretrained/roberta-base/` |
 | `roberta-large` | [RoBERTa-Large](https://huggingface.co/FacebookAI/roberta-large) | `checkpoints/pretrained/roberta-large/` |
 
-Run the matching preparation command once on a machine with network access. Each command downloads the pinned revision defined in `lfma/models/fourier/core.py`.
+Run the matching preparation command once on a machine with network access. Each command downloads the pinned revision defined in `lfma/core.py`.
 
 ```bash
 python run.py prepare --backbone vit-base --local-dir checkpoints/pretrained/vit-base
@@ -42,7 +42,7 @@ A prepared model works with automatic dataset downloads or fully local data:
 
 ```bash
 python run.py train --config config.yaml --model-dir checkpoints/pretrained/vit-base
-python run.py train --config experiments/configs/catalog/glue/roberta-large/mrpc/ratio_0p0005/alpha_150/seed_42.yaml \
+python run.py train --config experiments/roberta-large/mrpc/ratio_0p0005-alpha_150-seed_42.yaml \
   --model-dir checkpoints/pretrained/roberta-large --dataset-dir datasets/glue-mrpc --offline
 ```
 

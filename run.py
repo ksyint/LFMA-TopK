@@ -7,8 +7,8 @@ import argparse
 import json
 from collections.abc import Mapping
 from contextlib import nullcontext
-from lfma.data.benchmarks.streams import task_metrics, make_loader, TextCollator
-from lfma.models.fourier.core import (
+from lfma.data.streams import task_metrics, make_loader, TextCollator
+from lfma.core import (
     AverageMeter,
     GLUE_TASKS,
     validate_config,
@@ -21,9 +21,9 @@ from lfma.models.fourier.core import (
     IMAGE_TASKS,
     IMAGE_HUB,
 )
-from lfma.models.fourier.adaptation.injection import merge_adapters, inject_adapters
+from lfma.adaptation.injection import merge_adapters, inject_adapters
 from pathlib import Path
-from lfma.artifacts.adapter.storage import (
+from lfma.artifacts.storage import (
     load_pretrained_adapter,
     read_metadata,
     save_pretrained_adapter,
@@ -139,7 +139,7 @@ def train_main(args):
     device = cuda_device(args.device)
     if args.resume and args.config is None:
         config = read_metadata(args.resume)['config']
-        from lfma.models.fourier.core import apply_overrides
+        from lfma.core import apply_overrides
 
         config = apply_overrides(config, args.opts)
     else:
@@ -358,8 +358,8 @@ def prepare_main(args):
         config = load_config('config.yaml')
         config['data'].update(task=args.task, root=args.data_root, cache_dir=args.dataset_cache)
         if args.task in GLUE_TASKS:
-            from lfma.data.benchmarks.streams import dataset_from_hub
-            from lfma.models.fourier.core import GLUE_REVISION
+            from lfma.data.streams import dataset_from_hub
+            from lfma.core import GLUE_REVISION
 
             data = dataset_from_hub(config, 'nyu-mll/glue', args.task, GLUE_REVISION)
             if args.dataset_dir:
@@ -367,7 +367,7 @@ def prepare_main(args):
             print({split: len(records) for split, records in data.items()})
         elif args.task in IMAGE_HUB and args.dataset_dir:
             from datasets import DatasetDict
-            from lfma.data.benchmarks.streams import dataset_from_hub
+            from lfma.data.streams import dataset_from_hub
 
             repo, revision = IMAGE_HUB[args.task]
             splits = (
@@ -390,7 +390,7 @@ def prepare_main(args):
             data.save_to_disk(args.dataset_dir)
             print({split: len(records) for split, records in data.items()})
         else:
-            from lfma.data.benchmarks.streams import read_vision
+            from lfma.data.streams import read_vision
 
             for split in ('train', 'validation', 'test'):
                 dataset = read_vision(config, split)
@@ -438,11 +438,11 @@ def projection_cli():
 def main():
     import sys
 
-    from lfma.artifacts.adapter.validation import adapter_cli
-    from lfma.models.fourier.spectrum import spectrum_cli
-    from lfma.data.benchmarks.manifest import manifest_cli
+    from lfma.artifacts.validation import adapter_cli
+    from lfma.spectrum import spectrum_cli
+    from lfma.data.manifest import manifest_cli
     from lfma.experiments.session import plan_cli
-    from lfma.artifacts.adapter.bundle import bundle_cli
+    from lfma.artifacts.bundle import bundle_cli
     from lfma.experiments.comparison import compare_cli
 
     commands = {

@@ -4,7 +4,7 @@ Forty-five remote-sensing scene classes. Use the pinned parquet distribution wit
 
 ```bash
 python run.py prepare --task resisc45 --dataset-dir datasets/resisc45-arrow
-python run.py train --config experiments/configs/catalog/vision/vit-base/resisc45/ratio_0p0003/alpha_12/seed_42.yaml --dataset-dir datasets/resisc45-arrow --device cuda
+python run.py train --config experiments/vit-base/resisc45/ratio_0p0003-alpha_12-seed_42.yaml --dataset-dir datasets/resisc45-arrow --device cuda
 ```
 
 The ViT processor converts images to RGB and applies the pretrained 224×224 resize, rescaling, and normalization. The classifier has 45 outputs. The adapter targets the query projection of every transformer block.

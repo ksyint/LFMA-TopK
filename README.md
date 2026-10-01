@@ -18,7 +18,7 @@ Model training, evaluation, and prediction require CUDA. Choose a card with `CUD
 
 ## 2. Pretrained models and benchmark data
 
-The first training command downloads the requested pretrained weights and image processor/tokenizer automatically. Model revisions are pinned in `lfma/models/fourier/core.py` and recorded with each adapter.
+The first training command downloads the requested pretrained weights and image processor/tokenizer automatically. Model revisions are pinned in `lfma/core.py` and recorded with each adapter.
 
 | Backbone setting | Pretrained weights | Adapted projections |
 | --- | --- | --- |
@@ -66,7 +66,7 @@ For portable Hub image datasets, save the raw image/label records first and poin
 
 ```bash
 python run.py prepare --task resisc45 --dataset-dir datasets/resisc45-arrow
-python run.py train --config experiments/configs/catalog/vision/vit-base/resisc45/ratio_0p0500/alpha_12/seed_42.yaml \
+python run.py train --config experiments/vit-base/resisc45/ratio_0p0500-alpha_12-seed_42.yaml \
   --dataset-dir datasets/resisc45-arrow
 ```
 
@@ -93,16 +93,16 @@ The default configuration trains ImageNet-21k ViT-B/16 on CIFAR-10 with query ad
 CUDA_VISIBLE_DEVICES=0 python run.py train --config config.yaml
 ```
 
-Train an actual RoBERTa GLUE experiment from a complete profile:
+Profiles accept YAML or Python files assigning a literal dictionary to `cfg`. Train an actual RoBERTa GLUE experiment from a complete profile:
 
 ```bash
-python run.py train --config experiments/configs/catalog/glue/roberta-base/mrpc/ratio_0p0016/alpha_150/seed_42.yaml
+python run.py train --config experiments/roberta-base/mrpc/ratio_0p0016-alpha_150-seed_42.py
 ```
 
 For an offline run with prepared artifacts:
 
 ```bash
-python run.py train --config experiments/configs/catalog/glue/roberta-base/mrpc/ratio_0p0016/alpha_150/seed_42.yaml \
+python run.py train --config experiments/roberta-base/mrpc/ratio_0p0016-alpha_150-seed_42.py \
   --model-dir checkpoints/pretrained/roberta-base --dataset-dir datasets/glue-mrpc --offline
 ```
 
@@ -161,7 +161,7 @@ A merged export is a standard Transformers model directory containing the adapte
 
 ## 6. Adapter modules
 
-`lfma/models/fourier/core.py` defines pinned backbones and constructs pretrained models. The adjacent `spectrum.py` analyzes learned supports, and `adaptation/layers.py` and `adaptation/injection.py` implement sparse Fourier updates, projection replacement, and merging. `lfma/data/benchmarks` keeps dataset streams with manifest preparation. `lfma/artifacts/adapter` groups storage, structural validation, and portable bundles. `lfma/experiments` contains protocol selection, resumable plans, and repeated-seed comparisons. `run.py` exposes these operations as subcommands. See [module and checkpoint layout](docs/implementation.md) for the data flow.
+`lfma/core.py` defines pinned backbones and constructs pretrained models. The adjacent `spectrum.py` analyzes learned supports, and `adaptation/layers.py` and `adaptation/injection.py` implement sparse Fourier updates, projection replacement, and merging. `lfma/data` keeps dataset streams with manifest preparation. `lfma/artifacts` groups storage, structural validation, and portable bundles. `lfma/experiments` contains protocol selection, resumable plans, and repeated-seed comparisons. `run.py` exposes these operations as subcommands. See [module and checkpoint layout](docs/implementation.md) for the data flow.
 
 The adapter API accepts exact `nn.Linear` names and optional spatial update probes. Weights use PyTorch's `[out, in]` layout and default backward-normalized FFTs. `k = floor(out * in * ratio)` and each coefficient costs two real trainable scalars. Merging folds the learned update into each frozen projection.
 
@@ -181,4 +181,4 @@ python run.py compare --root results/catalog --output reports/catalog
 
 Training and evaluation accept `--manifest-dir` for a prepared JSONL bundle. Plans snapshot configurations, log each run, and continue from completed adapter checkpoints. Structural validation checks projection names, support sizes, tensor dtypes, processor files, and checkpoint byte ranges. Spectrum reports measure the learned support on CUDA. Adapter bundles carry a verified file inventory for transfer between prepared machines.
 
-[Benchmark and workflow guides](docs/index.md) describe each task, model preparation, named protocol, resumable plan, spectral report, and paired-seed comparison. The examples under `examples/manifests/text` and `examples/prediction` document accepted record fields.
+[Benchmark and workflow guides](docs/index.md) describe each task, model preparation, named protocol, resumable plan, spectral report, and paired-seed comparison. The examples under `examples/manifests` and `examples/prediction` document accepted record fields.

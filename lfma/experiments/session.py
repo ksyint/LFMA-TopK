@@ -12,7 +12,7 @@ import sys
 import yaml
 
 from lfma.experiments.protocols import ROOT, accepts, profile_key, read_catalog
-from lfma.models.fourier.core import GLUE_TASKS, validate_config
+from lfma.core import GLUE_TASKS, validate_config, load_config
 
 
 def fingerprint(value):
@@ -119,7 +119,7 @@ class PlanSession:
             raise ValueError('Plan status contains unknown run IDs')
         for entry in self.plan['runs']:
             path = self._path(entry['config'])
-            config = yaml.safe_load(path.read_text())
+            config = load_config(path)
             if fingerprint(config) != entry['id']:
                 raise ValueError(f'Configuration snapshot changed: {path}')
             if Path(config['train']['save_dir']).resolve() != self._path(entry['output']):
@@ -155,7 +155,7 @@ class PlanSession:
         completed_epochs = 0
         if metadata.is_file():
             saved = json.loads(metadata.read_text())
-            resolved = yaml.safe_load(config.read_text())
+            resolved = load_config(config)
             for key in ('adapter', 'data'):
                 if saved['config'][key] != resolved[key]:
                     raise ValueError(f'Resume checkpoint {key} differs from the plan')
@@ -176,7 +176,7 @@ class PlanSession:
                 command.extend(['--resume', str(checkpoint)])
             self._record(entry, 'training', resumed_epoch=completed_epochs)
             self._command(command, output, 'train')
-        from lfma.artifacts.adapter.validation import validate_adapter
+        from lfma.artifacts.validation import validate_adapter
 
         audit = validate_adapter(output / 'last')
         if audit['epoch'] != entry['epochs']:

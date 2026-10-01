@@ -1,0 +1,281 @@
+"""Pinned transformer architectures, model construction, and experiment settings."""
+
+from __future__ import annotations
+import torch
+import math
+import os
+import random
+import numpy as np
+import yaml
+import ast
+from torch import nn
+from pathlib import Path
+from lfma.adaptation.injection import inject_adapters
+
+
+BACKBONES = {
+    'vit-base': {
+        'family': 'vit',
+        'id': 'google/vit-base-patch16-224-in21k',
+        'revision': 'b4569560a39a0f1af58e3ddaf17facf20ab919b0',
+        'width': 768,
+        'layers': 12,
+    },
+    'vit-large': {
+        'family': 'vit',
+        'id': 'google/vit-large-patch16-224-in21k',
+        'revision': '6074eaf2211423e928c93b93ef773d5da618aa7e',
+        'width': 1024,
+        'layers': 24,
+    },
+    'roberta-base': {
+        'family': 'roberta',
+        'id': 'FacebookAI/roberta-base',
+        'revision': 'e2da8e2f811d1448a5b465c236feacd80ffbac7b',
+        'width': 768,
+        'layers': 12,
+    },
+    'roberta-large': {
+        'family': 'roberta',
+        'id': 'FacebookAI/roberta-large',
+        'revision': '722cf37b1afa9454edce342e7895e588b6ff1d59',
+        'width': 1024,
+        'layers': 24,
+    },
+}
+
+
+GLUE_TASKS = {
+    'sst2': ('sentence', None, 'accuracy'),
+    'mrpc': ('sentence1', 'sentence2', 'accuracy'),
+    'qnli': ('question', 'sentence', 'accuracy'),
+    'rte': ('sentence1', 'sentence2', 'accuracy'),
+    'cola': ('sentence', None, 'matthews_correlation'),
+    'stsb': ('sentence1', 'sentence2', 'pearson'),
+}
+GLUE_REVISION = 'bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c'
+
+
+IMAGE_TASKS = {
+    'cifar10': 10,
+    'cifar100': 100,
+    'oxford_pets': 37,
+    'stanford_cars': 196,
+    'fgvc_aircraft': 100,
+    'eurosat': 10,
+    'resisc45': 45,
+}
+IMAGE_HUB = {
+    'resisc45': ('timm/resisc45', 'fe12fc5f1b7606543b0355eda392f1ddc54625c6'),
+    'stanford_cars': ('tanganke/stanford_cars', '9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40'),
+}
+
+
+def num_labels(config):
+    task = config['data']['task']
+    return IMAGE_TASKS[task] if task in IMAGE_TASKS else (1 if task == 'stsb' else 2)
+
+
+def validate_config(config):
+    backbone = BACKBONES[config['model']['backbone']]
+    task = config['data']['task']
+    if task not in (IMAGE_TASKS if backbone['family'] == 'vit' else GLUE_TASKS):
+        raise ValueError('Select an image task for ViT or a GLUE task for RoBERTa')
+    ratio, scale = config['adapter']['top_k_ratio'], config['adapter']['alpha']
+    if not 0 < ratio <= 1 or not math.isfinite(scale) or scale <= 0:
+        raise ValueError('Spectral ratio and scale must be positive and finite')
+    if int(backbone['width'] ** 2 * ratio) < 1:
+        raise ValueError('The ratio allocates an empty Fourier support')
+    schedule = config['train']
+    for key in ('epochs', 'batch_size', 'gradient_accumulation'):
+        if not isinstance(schedule[key], int) or schedule[key] < 1:
+            raise ValueError(f'{key} must be a positive integer')
+    if schedule['learning_rate'] <= 0 or schedule['head_learning_rate'] <= 0:
+        raise ValueError('Optimizer learning rates must be positive')
+    if schedule['precision'] not in ('fp32', 'bf16'):
+        raise ValueError('Choose fp32 or bf16 precision')
+    if not 0 < config['data']['validation_fraction'] < 1:
+        raise ValueError('validation_fraction must be strictly between zero and one')
+    if config['data']['max_length'] > 512 or config['data']['max_length'] < 2:
+        raise ValueError('RoBERTa maximum token length must be in [2, 512]')
+    if config['data']['workers'] < 0:
+        raise ValueError('workers must be nonnegative')
+    return (
+        2
+        * int(backbone['width'] ** 2 * ratio)
+        * backbone['layers']
+        * (1 if backbone['family'] == 'vit' else 2)
+    )
+
+
+def vit_load(origin, options, classes, processor_dir=None):
+    from transformers import AutoImageProcessor
+    from transformers import AutoModelForImageClassification
+
+    model = AutoModelForImageClassification.from_pretrained(
+        origin,
+        num_labels=classes,
+        ignore_mismatched_sizes=True,
+        attn_implementation='eager',
+        torch_dtype=torch.float32,
+        **options,
+    )
+    processor_options = {'local_files_only': True} if processor_dir else dict(options)
+    processor = AutoImageProcessor.from_pretrained(
+        str(processor_dir or origin), use_fast=False, **processor_options
+    )
+    return model, processor
+
+
+def roberta_load(origin, options, classes, processor_dir=None):
+    from transformers import AutoModelForSequenceClassification
+    from transformers import AutoTokenizer
+
+    model = AutoModelForSequenceClassification.from_pretrained(
+        origin,
+        num_labels=classes,
+        ignore_mismatched_sizes=True,
+        attn_implementation='eager',
+        torch_dtype=torch.float32,
+        **options,
+    )
+    tokenizer_options = {'local_files_only': True} if processor_dir else dict(options)
+    tokenizer = AutoTokenizer.from_pretrained(str(processor_dir or origin), **tokenizer_options)
+    return model, tokenizer
+
+
+def hub_options(config):
+    model = config['model']
+    return {
+        'cache_dir': model['cache_dir'],
+        'local_files_only': model['offline'],
+        'revision': model['revision'] or BACKBONES[model['backbone']]['revision'],
+    }
+
+
+def load_backbone(config, device='cuda', processor_dir=None):
+    device = cuda_device(device)
+    if config['model']['offline']:
+        os.environ['HF_HUB_OFFLINE'] = '1'
+        os.environ['HF_DATASETS_OFFLINE'] = '1'
+    spec = BACKBONES[config['model']['backbone']]
+    origin = config['model']['local_dir'] or spec['id']
+    if config['model']['local_dir'] and not Path(origin).is_dir():
+        raise FileNotFoundError(f'Pretrained model directory does not exist: {origin}')
+    options = hub_options(config)
+    if config['model']['local_dir']:
+        options.pop('revision')
+    if spec['family'] == 'vit':
+        load = vit_load
+    else:
+        load = roberta_load
+    model, processor = load(origin, options, num_labels(config), processor_dir)
+    actual = (model.config.model_type, model.config.hidden_size, model.config.num_hidden_layers)
+    expected = (spec['family'], spec['width'], spec['layers'])
+    if actual != expected:
+        raise ValueError(f'Pretrained directory has encoder {actual}, expected {expected}')
+    if spec['family'] == 'vit' and (model.config.patch_size, model.config.image_size) != (
+        16,
+        224,
+    ):
+        raise ValueError('ViT experiments require patch size 16 and image size 224')
+    return model.to(device), processor
+
+
+def target_names(model, config):
+    family = BACKBONES[config['model']['backbone']]['family']
+    suffixes = (
+        ('.attention.attention.query',)
+        if family == 'vit'
+        else ('.attention.self.query', '.attention.self.value')
+    )
+    names = [
+        name
+        for name, layer in model.named_modules()
+        if isinstance(layer, nn.Linear) and name.endswith(suffixes)
+    ]
+    expected = model.config.num_hidden_layers * len(suffixes)
+    if len(names) != expected:
+        raise ValueError(
+            f'Expected {expected} {family} attention projections, found {len(names)}'
+        )
+    return names
+
+
+def insert_adapters(model, config):
+    names = target_names(model, config)
+    adapters = inject_adapters(model, names, seed=config['train']['seed'], **config['adapter'])
+    # Classification/regression heads are task parameters, initialized with the task.
+    model.classifier.requires_grad_(True)
+    return adapters
+
+
+class AverageMeter:
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.total = 0.0
+        self.count = 0
+
+    def update(self, value, count=1):
+        self.total += float(value) * count
+        self.count += count
+
+    @property
+    def avg(self):
+        return self.total / max(1, self.count)
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def load_config(path, opts=None):
+    path = Path(path)
+    source = path.read_text(encoding='utf-8')
+    if path.suffix == '.py':
+        body = ast.parse(source, filename=str(path)).body
+        if len(body) != 1 or not isinstance(body[0], ast.Assign):
+            raise ValueError('Python profiles require a single cfg dictionary assignment')
+        statement = body[0]
+        if (
+            len(statement.targets) != 1
+            or not isinstance(statement.targets[0], ast.Name)
+            or statement.targets[0].id != 'cfg'
+        ):
+            raise ValueError('Python profile values must be assigned to cfg')
+        cfg = ast.literal_eval(statement.value)
+    elif path.suffix in ('.yaml', '.yml'):
+        cfg = yaml.safe_load(source)
+    else:
+        raise ValueError(f'Unsupported configuration format: {path.suffix}')
+    if not isinstance(cfg, dict):
+        raise ValueError('An experiment configuration must be a dictionary')
+    return apply_overrides(cfg, opts)
+
+
+def apply_overrides(cfg, opts=None):
+    opts = opts or []
+    if len(opts) % 2:
+        raise ValueError('--opts expects pairs: dotted.key value')
+    for key, value in zip(opts[::2], opts[1::2]):
+        node = cfg
+        parts = key.split('.')
+        for part in parts[:-1]:
+            node = node[part]
+        if parts[-1] not in node:
+            raise KeyError(f'Unknown configuration key: {key}')
+        node[parts[-1]] = yaml.safe_load(value)
+    return cfg
+
+
+def cuda_device(value='cuda'):
+    device = torch.device(value)
+    if device.type != 'cuda':
+        raise ValueError('LFMA training and model evaluation require a CUDA device')
+    return device

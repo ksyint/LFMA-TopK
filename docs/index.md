@@ -2,13 +2,13 @@
 
 ## Benchmarks
 
-- [COLA text benchmark](benchmarks/text/cola.md)
+- [COLA text benchmark](benchmarks/cola.md)
 - [MRPC text benchmark](benchmarks/text/mrpc.md)
 - [QNLI text benchmark](benchmarks/text/qnli.md)
 - [RTE text benchmark](benchmarks/text/rte.md)
 - [SST2 text benchmark](benchmarks/text/sst2.md)
 - [STSB text benchmark](benchmarks/text/stsb.md)
-- [cifar10 image benchmark](benchmarks/vision/cifar10.md)
+- [cifar10 image benchmark](benchmarks/cifar10.md)
 - [cifar100 image benchmark](benchmarks/vision/cifar100.md)
 - [eurosat image benchmark](benchmarks/vision/eurosat.md)
 - [fgvc_aircraft image benchmark](benchmarks/vision/fgvc_aircraft.md)

@@ -3,8 +3,8 @@
 import torch
 import pytest
 from torch import nn
-from lfma.models.fourier.adaptation.layers import FourierLinear
-from lfma.models.fourier.adaptation.injection import inject_adapters, merge_adapters
+from lfma.adaptation.layers import FourierLinear
+from lfma.adaptation.injection import inject_adapters, merge_adapters
 
 
 def test_only_selected_coefficients_train_and_base_frozen():

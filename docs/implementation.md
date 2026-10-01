@@ -1,22 +1,22 @@
 # Modules and checkpoints
 
-`run.py` selects preparation, training, evaluation, prediction, and experiment protocols. Model construction and configuration live in `lfma/models/fourier/core.py`, with sparse update operations in its `adaptation` package.
+`run.py` selects preparation, training, evaluation, prediction, and experiment protocols. Model construction and configuration live in `lfma/core.py`, with sparse update operations in its `adaptation` package.
 
 | Module | Responsibility |
 | --- | --- |
-| `lfma/models/fourier/core.py` | Pinned model and dataset identities, projection selection, and configuration |
-| `lfma/models/fourier/spectrum.py` | CUDA support measurements and spectral reports |
-| `lfma/models/fourier/adaptation/layers.py` | Stable support selection, sparse coefficients, and the linear update |
-| `lfma/models/fourier/adaptation/injection.py` | Named projection replacement and merged model construction |
-| `lfma/data/benchmarks/streams.py` | Raw datasets, fixed partitions, processors, collators, and task metrics |
-| `lfma/artifacts/adapter/storage.py` | Sparse tensor serialization, strict restoration, merged artifacts, and seed summaries |
-| `lfma/artifacts/adapter/validation.py` | Tensor header, processor, and configuration checks |
-| `lfma/artifacts/adapter/bundle.py` | Verified adapter packing and extraction |
+| `lfma/core.py` | Pinned model and dataset identities, projection selection, and configuration |
+| `lfma/spectrum.py` | CUDA support measurements and spectral reports |
+| `lfma/adaptation/layers.py` | Stable support selection, sparse coefficients, and the linear update |
+| `lfma/adaptation/injection.py` | Named projection replacement and merged model construction |
+| `lfma/data/streams.py` | Raw datasets, fixed partitions, processors, collators, and task metrics |
+| `lfma/artifacts/storage.py` | Sparse tensor serialization, strict restoration, merged artifacts, and seed summaries |
+| `lfma/artifacts/validation.py` | Tensor header, processor, and configuration checks |
+| `lfma/artifacts/bundle.py` | Verified adapter packing and extraction |
 | `lfma/experiments/protocols.py` | Profile catalogs, named protocols, run selection, and parameter inspection |
 | `lfma/experiments/session.py` | Resumable training and evaluation plans |
 | `lfma/experiments/comparison.py` | Repeated-seed aggregation and paired comparisons |
 | `run.py` | CUDA optimization, model preparation, evaluation, prediction, and command dispatch |
-| `experiments/configs/catalog/` | Complete vision and GLUE experiment configurations |
+| `experiments/` | Complete vision and GLUE experiment configurations |
 
 The frozen projection weight has shape `[out, in]`. Support selection computes a two-dimensional FFT of the initialization probe and retains the largest `floor(out * in * ratio)` magnitudes. The selected indices remain fixed. Each selected complex coefficient is stored as two FP32 trainable values. The real inverse FFT, multiplied by `alpha`, produces the update applied in the linear layer.
 

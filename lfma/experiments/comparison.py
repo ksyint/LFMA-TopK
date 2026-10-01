@@ -10,7 +10,7 @@ import statistics
 
 import numpy as np
 
-from lfma.models.fourier.core import GLUE_TASKS
+from lfma.core import GLUE_TASKS
 
 
 COORDINATES = ('backbone', 'task', 'ratio', 'alpha')

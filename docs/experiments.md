@@ -1,16 +1,18 @@
 # Experiment settings
 
-Each YAML file is a complete experiment, including its backbone, raw dataset, sparse support, scale, optimizer, seed, and output directory. No external base configuration is needed to read it.
+Each Python or YAML file is a complete experiment, including its backbone, raw dataset, sparse support, scale, optimizer, seed, and output directory. Python profiles assign a literal dictionary to `cfg`. No external base configuration is needed to read a profile.
 
 Profiles use this directory structure:
 
 ```text
-experiments/configs/catalog/
-  vision/vit-base/cifar10/ratio_0p0500/alpha_12/seed_42.yaml
-  glue/roberta-base/mrpc/ratio_0p0016/alpha_150/seed_42.yaml
+experiments/
+  vit-base-cifar10-ratio_0p0500-alpha_12-seed_42.yaml
+  roberta-base/
+    cola-ratio_0p0005-alpha_150-seed_1024.py
+    mrpc/ratio_0p0016-alpha_150-seed_42.py
 ```
 
-The catalog separates optimization seeds from image split seeds. Every profile uses `data.split_seed: 42`, so varying `train.seed` does not change image train/validation/test membership.
+Representative profiles sit beside each backbone's task folders. The catalog separates optimization seeds from image split seeds. Every profile uses `data.split_seed: 42`, so varying `train.seed` does not change image train/validation/test membership.
 
 | Protocol | Backbones | Support ratios | Scales | Profiles |
 | --- | --- | --- | --- | --- |
@@ -49,4 +51,4 @@ python run.py summarize --root results/catalog --expected-seeds 42 123 456 --out
 python run.py grid --protocol vision-ablation --alphas 120 --seeds 42 --dry-run
 ```
 
-The dry-run command checks every YAML schema and output path, then reports the selected profiles. It does not load or download a model. `python run.py catalog` regenerates the committed catalog from the same axes.
+The dry-run command checks every profile schema and output path, then reports the selected profiles. It does not load or download a model. `python run.py catalog` regenerates the committed catalog from the same axes and keeps each profile's configuration format.
