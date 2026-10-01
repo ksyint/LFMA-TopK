@@ -1,0 +1,20 @@
+# Feature-space LFMA: support ratio, scale, and seed.
+model:
+  input_dim: 1024
+  hidden_dim: 1024
+  num_classes: 1000
+adapter:
+  target_names:
+  - fc1
+  - fc2
+  top_k_ratio: 0.001
+  alpha: 120.0
+  init_std: 0.001
+train:
+  seed: 456
+  epochs: 30
+  batch_size: 32
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  num_threads: 1
+  save_dir: results/catalog/feature_1024/ratio_0p0010/alpha_120/seed_456
